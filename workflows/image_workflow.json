@@ -1,0 +1,141 @@
+{
+  "60": {
+    "class_type": "SaveImage",
+    "inputs": {
+      "images": [
+        "251",
+        0
+      ],
+      "filename_prefix": "Qwen-Image-2512"
+    },
+    "_meta": {
+      "title": "SaveImage"
+    }
+  },
+  "246": {
+    "class_type": "CLIPLoader",
+    "inputs": {
+      "clip_name": "qwen_2.5_vl_7b_fp8_scaled.safetensors",
+      "type": "qwen_image",
+      "device": "default"
+    },
+    "_meta": {
+      "title": "CLIPLoader"
+    }
+  },
+  "248": {
+    "class_type": "ModelSamplingAuraFlow",
+    "inputs": {
+      "model": [
+        "249",
+        0
+      ],
+      "shift": 3.1
+    },
+    "_meta": {
+      "title": "ModelSamplingAuraFlow"
+    }
+  },
+  "249": {
+    "class_type": "UNETLoader",
+    "inputs": {
+      "unet_name": "Qwen-Rapid-AIO-NSFW-v23.safetensors",
+      "weight_dtype": "default"
+    },
+    "_meta": {
+      "title": "UNETLoader"
+    }
+  },
+  "250": {
+    "class_type": "CLIPTextEncode",
+    "inputs": {
+      "clip": [
+        "246",
+        0
+      ],
+      "text": "低分辨率，低画质，肢体畸形，手指畸形，画面过饱和，蜡像感，人脸无细节，过度光滑，画面具有AI感。构图混乱。文字模糊，扭曲"
+    },
+    "_meta": {
+      "title": "CLIP Text Encode (Negative Prompt)"
+    }
+  },
+  "264": {
+    "class_type": "CLIPTextEncode",
+    "inputs": {
+      "clip": [
+        "246",
+        0
+      ],
+      "text": "Hardcore Gravure, Explicit Sensuality, Korean Digital Style, Boyfriend photography styles, 19-Year-Old Taiwanese Girl. 正午，蓝天白云， 这是一个充满童趣与禁忌反差的“玩偶屋”主题。背景是高层公寓的全景落地玻璃窗，地板上散落着几个巨大的毛绒玩具熊和兔子。模特，那位19岁的台湾女生，深蹲在柔软的地毯上，但她并非穿着可爱的睡衣，而是全身赤裸，只在脖颈上系着一个巨大的、粉色的蝴蝶结丝带，仿佛她本身就是一件等待拆封的礼物。她双手捧着一只巨大的泰迪熊，将泰迪熊的脸朝向自己，而她则微微侧头，眼神却越过泰迪熊的肩膀，直视镜头，眼神中混合着孩童般的天真和一种“明知故犯”的妖冶。她的嘴唇轻触着泰迪熊的耳朵，仿佛在低语什么秘密。灯光柔和地照亮她全身，从光洁的额头到圆润的肩头，再到因深蹲而挤压出饱满弧线的大腿和臀部。她身体的每一处细节，包括胸前挺立的蓓蕾和双腿间若隐若现的神秘地带，都与身旁那些毛茸茸、无生命的玩具形成强烈对比，营造出一种“坏掉的纯真”的强烈视觉冲击。她的脚丫赤裸，脚趾调皮地勾起，碰触着旁边另一只小熊。整个画面将甜美与情欲、童趣与成熟并置，产生一种极致且复杂的感官张力。"
+    },
+    "_meta": {
+      "title": "CLIP Text Encode (Positive Prompt)"
+    }
+  },
+  "260": {
+    "class_type": "EmptySD3LatentImage",
+    "inputs": {
+      "width": 928,
+      "height": 1664,
+      "batch_size": 1
+    },
+    "_meta": {
+      "title": "EmptySD3LatentImage"
+    }
+  },
+  "263": {
+    "class_type": "KSampler",
+    "inputs": {
+      "model": [
+        "248",
+        0
+      ],
+      "positive": [
+        "264",
+        0
+      ],
+      "negative": [
+        "250",
+        0
+      ],
+      "latent_image": [
+        "260",
+        0
+      ],
+      "seed": 177085552898688,
+      "steps": 4,
+      "cfg": 1,
+      "sampler_name": "sa_solver",
+      "scheduler": "beta",
+      "denoise": 1
+    },
+    "_meta": {
+      "title": "KSampler"
+    }
+  },
+  "251": {
+    "class_type": "VAEDecode",
+    "inputs": {
+      "samples": [
+        "263",
+        0
+      ],
+      "vae": [
+        "247",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "VAEDecode"
+    }
+  },
+  "247": {
+    "class_type": "VAELoader",
+    "inputs": {
+      "vae_name": "qwen_image_vae.safetensors"
+    },
+    "_meta": {
+      "title": "VAELoader"
+    }
+  }
+}
