@@ -1,7 +1,7 @@
 {
   "97": {
     "inputs": {
-      "image": "Video posted by SeoulSeeker.mp4_snapshot_00.00.000.jpg"
+      "image": ""
     },
     "class_type": "LoadImage",
     "_meta": {
@@ -10,10 +10,9 @@
   },
   "108": {
     "inputs": {
-      "filename_prefix": "Wan2.2_i2v",
+      "filename_prefix": "video/Wan2.2_i2v",
       "format": "auto",
       "codec": "auto",
-      "video-preview": "",
       "video": [
         "180",
         0
@@ -26,14 +25,8 @@
   },
   "149": {
     "inputs": {
-      "width": [
-        "193",
-        1
-      ],
-      "height": [
-        "193",
-        2
-      ],
+      "width": 480,
+      "height": 832,
       "length": 81,
       "batch_size": 1,
       "positive": [
@@ -49,7 +42,7 @@
         0
       ],
       "start_image": [
-        "193",
+        "97",
         0
       ]
     },
@@ -73,7 +66,7 @@
   },
   "152": {
     "inputs": {
-      "text": "Rapid, fast, exaggerated movement.  r3v3rs3_c0wg1rl, a woman rapidly bobbing up and down on a man's large penis. The woman is positioned in the reverse cowgirl sex position on top of the man, camera rotates around her slowly. The man's erect penis is visible as she bounces on him. Her buttocks jiggle with each bounce, His muscular body is partly visible beneath her. The lighting is warm creating a soft glow on their skin. The perspective is from behind the woman, her face is turned to the side over her left shoulder with a seductive expression",
+      "text": "",
       "clip": [
         "170",
         0
@@ -252,7 +245,7 @@
       ],
       "return_with_leftover_noise": "enable",
       "model": [
-        "190",
+        "173",
         0
       ],
       "positive": [
@@ -313,7 +306,7 @@
       ],
       "return_with_leftover_noise": "disable",
       "model": [
-        "188",
+        "184",
         0
       ],
       "positive": [
@@ -334,158 +327,32 @@
       "title": "KSampler (Advanced)"
     }
   },
-  "187": {
+  "182": {
     "inputs": {
-      "toggle": true,
-      "mode": "simple",
-      "num_loras": 3,
-      "lora_1_name": "Instagirlv2.3/Insatgirlv2.3_low.safetensors",
-      "lora_1_strength": 1,
-      "lora_1_model_strength": 1,
-      "lora_1_clip_strength": 1,
-      "lora_2_name": "wan22.r3v3rs3_c0wg1rl-14b-Low-i2v_e70.safetensors",
-      "lora_2_strength": 1,
-      "lora_2_model_strength": 1,
-      "lora_2_clip_strength": 1,
-      "lora_3_name": "wan2.2_Lenovo.safetensors",
-      "lora_3_strength": 1,
-      "lora_3_model_strength": 1,
-      "lora_3_clip_strength": 1,
-      "lora_4_name": "None",
-      "lora_4_strength": 1,
-      "lora_4_model_strength": 1,
-      "lora_4_clip_strength": 1,
-      "lora_5_name": "None",
-      "lora_5_strength": 1,
-      "lora_5_model_strength": 1,
-      "lora_5_clip_strength": 1,
-      "lora_6_name": "None",
-      "lora_6_strength": 1,
-      "lora_6_model_strength": 1,
-      "lora_6_clip_strength": 1,
-      "lora_7_name": "None",
-      "lora_7_strength": 1,
-      "lora_7_model_strength": 1,
-      "lora_7_clip_strength": 1,
-      "lora_8_name": "None",
-      "lora_8_strength": 1,
-      "lora_8_model_strength": 1,
-      "lora_8_clip_strength": 1,
-      "lora_9_name": "None",
-      "lora_9_strength": 1,
-      "lora_9_model_strength": 1,
-      "lora_9_clip_strength": 1,
-      "lora_10_name": "None",
-      "lora_10_strength": 1,
-      "lora_10_model_strength": 1,
-      "lora_10_clip_strength": 1
-    },
-    "class_type": "easy loraStack",
-    "_meta": {
-      "title": "EasyLoraStack"
-    }
-  },
-  "188": {
-    "inputs": {
-      "lora_stack": [
-        "187",
-        0
-      ],
+      "lora_name": "Instagirlv2.3/Instagirlv2.3_high.safetensors",
+      "strength_model": 1,
       "model": [
         "174",
         0
       ]
     },
-    "class_type": "easy loraStackApply",
+    "class_type": "LoraLoaderModelOnly",
     "_meta": {
-      "title": "Easy Apply LoraStack"
+      "title": "Load LoRA"
     }
   },
-  "189": {
+  "184": {
     "inputs": {
-      "toggle": true,
-      "mode": "simple",
-      "num_loras": 2,
-      "lora_1_name": "Instagirlv2.3/Instagirlv2.3_high.safetensors",
-      "lora_1_strength": 1,
-      "lora_1_model_strength": 1,
-      "lora_1_clip_strength": 1,
-      "lora_2_name": "wan22.r3v3rs3_c0wg1rl-14b-High-i2v_e70.safetensors",
-      "lora_2_strength": 1,
-      "lora_2_model_strength": 1,
-      "lora_2_clip_strength": 1,
-      "lora_3_name": "None",
-      "lora_3_strength": 1,
-      "lora_3_model_strength": 1,
-      "lora_3_clip_strength": 1,
-      "lora_4_name": "None",
-      "lora_4_strength": 1,
-      "lora_4_model_strength": 1,
-      "lora_4_clip_strength": 1,
-      "lora_5_name": "None",
-      "lora_5_strength": 1,
-      "lora_5_model_strength": 1,
-      "lora_5_clip_strength": 1,
-      "lora_6_name": "None",
-      "lora_6_strength": 1,
-      "lora_6_model_strength": 1,
-      "lora_6_clip_strength": 1,
-      "lora_7_name": "None",
-      "lora_7_strength": 1,
-      "lora_7_model_strength": 1,
-      "lora_7_clip_strength": 1,
-      "lora_8_name": "None",
-      "lora_8_strength": 1,
-      "lora_8_model_strength": 1,
-      "lora_8_clip_strength": 1,
-      "lora_9_name": "None",
-      "lora_9_strength": 1,
-      "lora_9_model_strength": 1,
-      "lora_9_clip_strength": 1,
-      "lora_10_name": "None",
-      "lora_10_strength": 1,
-      "lora_10_model_strength": 1,
-      "lora_10_clip_strength": 1
-    },
-    "class_type": "easy loraStack",
-    "_meta": {
-      "title": "EasyLoraStack"
-    }
-  },
-  "190": {
-    "inputs": {
-      "lora_stack": [
-        "189",
-        0
-      ],
+      "lora_name": "wan2.2_Lenovo.safetensors",
+      "strength_model": 1,
       "model": [
-        "173",
+        "182",
         0
       ]
     },
-    "class_type": "easy loraStackApply",
+    "class_type": "LoraLoaderModelOnly",
     "_meta": {
-      "title": "Easy Apply LoraStack"
-    }
-  },
-  "193": {
-    "inputs": {
-      "preset_resolution": "480p",
-      "resize_mode": "Keep Proportion",
-      "orientation_priority": "Auto Detect",
-      "pad_color": "Black",
-      "interpolation": "Bilinear",
-      "dimension_multiple": 16,
-      "custom_width": 832,
-      "custom_height": 480,
-      "image": [
-        "97",
-        0
-      ]
-    },
-    "class_type": "WanVideoAutoImgResize",
-    "_meta": {
-      "title": "WanVideo Auto Image Resize"
+      "title": "Load LoRA"
     }
   }
 }

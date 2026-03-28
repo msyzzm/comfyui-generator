@@ -35,6 +35,33 @@ _DEFAULT_WORKFLOWS_DIR = _SCRIPT_DIR / "workflows"
 
 
 # =============================================================================
+# LoRA Keyword Mapping Configuration
+# =============================================================================
+# Format: "LoRA Name Pattern": ["keyword1", "keyword2", ...]
+# When a keyword is detected in the prompt, the corresponding LoRA will be enabled
+# LoRA name matching is case-insensitive and uses substring matching
+LORA_KEYWORD_MAPPING = {
+    # Portrait/Character LoRAs
+    "Instagirl": ["portrait", "selfie", "instagram", "girl", "woman", "face"],
+    "r3v3rs3_c0wg1rl": ["cowgirl", "riding", "reverse", "sex", "r3v3rs3_c0wg1rl", "c0wg1rl"],
+    "Lenovo": ["phone", "mobile", "smartphone", "handheld"],
+
+    # Style LoRAs
+    "cyberpunk": ["cyberpunk", "neon", "futuristic", "sci-fi"],
+    "anime": ["anime", "manga", "cartoon", "2d"],
+    "realistic": ["realistic", "photorealistic", "photo"],
+    "cinematic": ["cinematic", "movie", "film"],
+
+    # Action/Motion LoRAs
+    "dance": ["dance", "dancing", "choreography"],
+    "run": ["run", "running", "sprint"],
+    "walk": ["walk", "walking", "stroll"],
+
+    # Add more mappings below as needed
+}
+
+
+# =============================================================================
 # Configuration
 # =============================================================================
 
@@ -113,6 +140,9 @@ class ImageToVideoParams(WorkflowParams):
     cfg: float = 1.0
     fps: int = 16
     service_name: Optional[str] = None  # Service to switch to before generation
+    # LoRA control
+    lora_keywords: bool = True  # Enable automatic LoRA keyword detection
+    lora_mapping: Dict[str, List[str]] = field(default_factory=dict)  # Custom keyword mapping (overrides default)
 
 
 @dataclass
@@ -645,12 +675,76 @@ class ImageEditWorkflow(Workflow):
 class ImageToVideoWorkflow(Workflow):
     """Image-to-video generation workflow"""
 
-    # Node IDs in the workflow
+    # Node IDs in the workflow (for new workflow with EasyLoraStack)
     NODE_LOAD_IMAGE = "97"
     NODE_POSITIVE_CLIP = "152"
     NODE_NEGATIVE_CLIP = "150"
     NODE_VIDEO_GEN = "149"
     NODE_SAVE_VIDEO = "108"
+    # EasyLoraStack nodes
+    NODE_LORA_STACK_LOW = "187"   # easy loraStack (low noise)
+    NODE_LORA_STACK_HIGH = "189"  # easy loraStack (high noise)
+
+    def _apply_lora_keywords(self, prompt: str, lora_keywords_enabled: bool, custom_mapping: Dict[str, List[str]]):
+        """Apply LoRA keyword detection and update LoRA stack nodes"""
+        if not lora_keywords_enabled:
+            print("[LoRA] Keyword detection disabled, using workflow defaults")
+            return
+
+        # Use custom mapping if provided, otherwise use global mapping
+        keyword_mapping = custom_mapping if custom_mapping else LORA_KEYWORD_MAPPING
+
+        # Convert prompt to lowercase for matching
+        prompt_lower = prompt.lower()
+
+        # Find matching LoRAs based on keywords
+        enabled_loras = set()
+        for lora_pattern, keywords in keyword_mapping.items():
+            for keyword in keywords:
+                if keyword.lower() in prompt_lower:
+                    enabled_loras.add(lora_pattern)
+                    print(f"[LoRA] Keyword '{keyword}' detected → enabling: {lora_pattern}")
+                    break
+
+        # Update EasyLoraStack nodes
+        for node_id in [self.NODE_LORA_STACK_LOW, self.NODE_LORA_STACK_HIGH]:
+            if node_id not in self.prompt_data:
+                continue
+
+            node_data = self.prompt_data[node_id]
+            if node_data.get("class_type") != "easy loraStack":
+                continue
+
+            # Get current inputs
+            inputs = node_data.get("inputs", {})
+            num_loras = inputs.get("num_loras", 0)
+
+            # Check each LoRA slot
+            for i in range(1, num_loras + 1):
+                lora_name_key = f"lora_{i}_name"
+                current_name = inputs.get(lora_name_key, "None")
+
+                # Skip if already None or empty
+                if not current_name or current_name == "None":
+                    continue
+
+                # Check if this LoRA matches any enabled pattern
+                is_enabled = False
+                for enabled_pattern in enabled_loras:
+                    if enabled_pattern.lower() in current_name.lower():
+                        is_enabled = True
+                        break
+
+                # Disable LoRA by setting name to "None" and strength to 0
+                if not is_enabled:
+                    print(f"[LoRA] Disabling: {current_name}")
+                    self.prompt_data[node_id]["inputs"][lora_name_key] = "None"
+                    # Also set strength to 0 for extra safety
+                    strength_key = f"lora_{i}_strength"
+                    if strength_key in inputs:
+                        self.prompt_data[node_id]["inputs"][strength_key] = 0
+                else:
+                    print(f"[LoRA] Enabling: {current_name}")
 
     def set_parameters(self, params: ImageToVideoParams):
         """Set image-to-video parameters"""
@@ -674,6 +768,9 @@ class ImageToVideoWorkflow(Workflow):
                 "height": params.height,
                 "length": params.length
             })
+
+        # Apply LoRA keyword detection
+        self._apply_lora_keywords(params.prompt, params.lora_keywords, params.lora_mapping)
 
     def execute(self, params: ImageToVideoParams, output_dir: str = "./outputs", reboot_first: bool = True) -> List[str]:
         """Execute image-to-video workflow"""
@@ -833,19 +930,20 @@ class AddAudioToVideoWorkflow(Workflow):
             self.close()
 
     def _upload_video(self, video_path: str) -> str:
-        """Upload video to ComfyUI server"""
+        """Upload video to ComfyUI server via /upload/image endpoint"""
         filename = os.path.basename(video_path)
         with open(video_path, "rb") as f:
-            files = {"video": (filename, f)}
+            files = {"image": (filename, f)}
             data = {"overwrite": "true"}
             response = self.session.post(
-                f"http://{self.config.server_address}/upload/video",
+                f"http://{self.config.server_address}/upload/image",
                 files=files,
                 data=data,
                 timeout=self.config.request_timeout
             )
             response.raise_for_status()
             result = response.json()
+            print(f"[Audio] Uploaded video: {filename}")
             return result.get('name', filename)
 
     def _save_outputs(self, result: Dict, output_dir: str, seed: int) -> List[str]:
@@ -855,8 +953,10 @@ class AddAudioToVideoWorkflow(Workflow):
         saved_files = []
 
         for node_id, node_output in result.get("outputs", {}).items():
-            if "videos" in node_output:
-                for video in node_output["videos"]:
+            # VHS VideoCombine uses "gifs" key for video outputs
+            video_list = node_output.get("videos") or node_output.get("gifs")
+            if video_list:
+                for video in video_list:
                     filename = video["filename"]
                     subfolder = video.get("subfolder", "")
                     folder_type = video.get("type", "output")

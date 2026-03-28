@@ -33,6 +33,7 @@ CLI-based tool for generating images, editing images, and creating videos using 
 - **Image-to-Video**: Create videos from images
 - **Add Audio to Video**: Add AI-generated audio to videos using MMAudio
 - **Automatic Service Switching**: Automatically switches between `normal` and `no-cache` services
+- **Smart LoRA Control**: Automatically enable/disable LoRAs based on prompt keywords
 
 ## Quick Start
 
@@ -147,6 +148,35 @@ python comfyui_runner.py i2v input.jpg "camera pans across the landscape" \
   --enable-service-manager
 ```
 
+**Smart LoRA Control** (Automatic):
+
+The video generation automatically detects keywords in your prompt and enables relevant LoRAs:
+
+```python
+# Built-in keyword mappings (can be customized in comfyui_runner.py)
+LORA_KEYWORD_MAPPING = {
+    "Instagirl": ["portrait", "selfie", "girl", "woman", "face"],
+    "r3v3rs3_c0wg1rl": ["cowgirl", "riding", "sex"],
+    "Lenovo": ["phone", "mobile", "smartphone"],
+    "cyberpunk": ["cyberpunk", "neon", "futuristic"],
+    # ... add more mappings
+}
+```
+
+Example prompts:
+- `"A woman in cowgirl position"` → Enables Instagirl + r3v3rs3_c0wg1rl LoRAs
+- `"A portrait with phone"` → Enables Instagirl + Lenovo LoRAs
+- `"A cyberpunk city"` → Enables cyberpunk LoRA
+
+To disable automatic LoRA detection (use workflow defaults):
+```python
+videos = runner.generate_video(
+    image_path="input.jpg",
+    prompt="your prompt",
+    lora_keywords=False  # Disable auto-detection
+)
+```
+
 ## Automatic Service Switching
 
 The skill automatically selects the optimal service when `--enable-service-manager` is used:
@@ -206,6 +236,8 @@ python comfyui_runner.py i2v input.jpg "camera pans" \
 | `steps` | int | 4 | Sampling steps |
 | `cfg` | float | 1.0 | CFG scale |
 | `seed` | int | Random | Random seed |
+| `lora_keywords` | bool | True | Enable automatic LoRA keyword detection |
+| `lora_mapping` | dict | {} | Custom keyword mapping (overrides default) |
 
 ### Add Audio to Video Parameters
 
@@ -324,6 +356,7 @@ The skill handles common errors automatically:
 3. **For video**: Start with good quality input images
 4. **Negative prompts**: Use descriptive negative prompts for better results
 5. **Batch operations**: Reuse runner instance for multiple generations
+6. **LoRA keywords**: Add custom keyword mappings in `LORA_KEYWORD_MAPPING` (top of comfyui_runner.py)
 
 ### Example 4: Add Audio to Video
 
@@ -363,4 +396,5 @@ python comfyui_runner.py audio input.mp4 "ambient music with gentle piano" \
 Workflows are located in the `workflows/` directory:
 - `image_workflow.json` - Text-to-image nodes
 - `edit_workflow.json` - Image editing nodes
-- `video_workflow.json` - Image-to-video nodes
+- `video_workflow.json` - Image-to-video nodes (with EasyLoraStack support)
+- `audio_workflow.json` - Audio generation nodes (MMAudio)

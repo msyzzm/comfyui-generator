@@ -3,7 +3,7 @@
     "inputs": {
       "duration": ["112", 0],
       "steps": 100,
-      "cfg": 6,
+      "cfg": 8,
       "seed": 102120155015348,
       "prompt": "",
       "negative_prompt": "",
