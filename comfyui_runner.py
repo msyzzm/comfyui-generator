@@ -82,7 +82,7 @@ class ComfyUIConfig:
     poll_interval: int = 5
     max_poll_retries: int = 600  # 50 minutes max for long video generation
     # Service manager configuration
-    service_manager_enabled: bool = False
+    service_manager_enabled: bool = True
     service_manager_address: str = "192.168.1.179:9999"
 
 
@@ -140,6 +140,8 @@ class ImageToVideoParams(WorkflowParams):
     cfg: float = 1.0
     fps: int = 16
     service_name: Optional[str] = None  # Service to switch to before generation
+    # Model selection
+    model: str = "default"  # "default" or "smooth"
     # LoRA control
     lora_keywords: bool = True  # Enable automatic LoRA keyword detection
     lora_mapping: Dict[str, List[str]] = field(default_factory=dict)  # Custom keyword mapping (overrides default)
@@ -230,8 +232,8 @@ class Workflow(ABC):
                 print("[Service Manager] Failed to start service")
                 return False
         else:
-            print("[ComfyUI] Please start ComfyUI server or enable service manager")
-            print("[ComfyUI] Run with --enable-service-manager to auto-start services")
+            print("[ComfyUI] Please start ComfyUI server or check service manager")
+            print("[ComfyUI] Service manager is enabled by default, use --disable-service-manager to disable")
             return False
 
     def _reboot_server(self, wait_for_recovery: bool = True, timeout: int = 300) -> bool:
@@ -681,9 +683,24 @@ class ImageToVideoWorkflow(Workflow):
     NODE_NEGATIVE_CLIP = "150"
     NODE_VIDEO_GEN = "149"
     NODE_SAVE_VIDEO = "108"
+    # Model loader nodes (UnetLoaderGGUF)
+    NODE_HIGH_MODEL = "175"  # High noise model
+    NODE_LOW_MODEL = "176"   # Low noise model
     # EasyLoraStack nodes
     NODE_LORA_STACK_LOW = "187"   # easy loraStack (low noise)
     NODE_LORA_STACK_HIGH = "189"  # easy loraStack (high noise)
+
+    # Model presets: (high_noise_file, low_noise_file)
+    MODEL_PRESETS = {
+        "default": (
+            "Wan2.2-I2V-A14B-HighNoise-Q8_0.gguf",
+            "Wan2.2-I2V-A14B-LowNoise-Q8_0.gguf",
+        ),
+        "smooth": (
+            "smoothMixWan22I2VV20_highQ80.gguf",
+            "smoothMixWan22I2VV20_lowQ80.gguf",
+        ),
+    }
 
     def _apply_lora_keywords(self, prompt: str, lora_keywords_enabled: bool, custom_mapping: Dict[str, List[str]]):
         """Apply LoRA keyword detection and update LoRA stack nodes"""
@@ -752,6 +769,17 @@ class ImageToVideoWorkflow(Workflow):
         image_ref = self._upload_image(params.image_path, subfolder="")
         if self.NODE_LOAD_IMAGE in self.prompt_data:
             self.prompt_data[self.NODE_LOAD_IMAGE]["inputs"]["image"] = image_ref
+
+        # Set model preset
+        if params.model in self.MODEL_PRESETS:
+            high_file, low_file = self.MODEL_PRESETS[params.model]
+            if self.NODE_HIGH_MODEL in self.prompt_data:
+                self.prompt_data[self.NODE_HIGH_MODEL]["inputs"]["unet_name"] = high_file
+            if self.NODE_LOW_MODEL in self.prompt_data:
+                self.prompt_data[self.NODE_LOW_MODEL]["inputs"]["unet_name"] = low_file
+            print(f"[Model] Using preset '{params.model}': {high_file}")
+        else:
+            print(f"[Model] Unknown preset '{params.model}', using workflow defaults")
 
         # Set prompt
         if self.NODE_POSITIVE_CLIP in self.prompt_data:
@@ -1196,14 +1224,16 @@ Examples:
     parser.add_argument("--no-reboot", action="store_true", help="Skip server reboot before i2v (not recommended)")
     parser.add_argument("--service", help="Service name to switch to (requires service manager)")
     parser.add_argument("--service-manager", help="Service manager address (e.g., 192.168.1.179:9999)")
-    parser.add_argument("--enable-service-manager", action="store_true", help="Enable service manager integration")
+    parser.add_argument("--disable-service-manager", action="store_true", help="Disable service manager integration (enabled by default)")
+    parser.add_argument("--model", choices=["default", "smooth"], default="default",
+                        help="Video model preset: 'default' (Wan2.2-I2V-A14B) or 'smooth' (smoothMixWan22I2VV20)")
 
     args = parser.parse_args()
 
     # Configure
     config = ComfyUIConfig(server_address=args.server)
-    if args.enable_service_manager:
-        config.service_manager_enabled = True
+    if not args.disable_service_manager:
+        config.service_manager_enabled = False
         if args.service_manager:
             config.service_manager_address = args.service_manager
     runner = ComfyUIRunner(config)
@@ -1259,6 +1289,8 @@ Examples:
                 i2v_kwargs["height"] = args.height
             if args.service:
                 i2v_kwargs["service_name"] = args.service
+            if args.model:
+                i2v_kwargs["model"] = args.model
             outputs = runner.generate_video(
                 image_path=args.input,
                 prompt=args.prompt,

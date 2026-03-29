@@ -20,10 +20,9 @@ metadata: {
 CLI-based tool for generating images, editing images, and creating videos using ComfyUI workflows with automatic service switching.
 
 **Primary Interface:** `comfyui_runner.py` command-line script
-
 **Requirements:**
 - ComfyUI server running
-- comfyui-service-manager running (required for automatic service switching)
+- comfyui-service-manager running (enabled by default)
 
 ## Features
 
@@ -34,19 +33,23 @@ CLI-based tool for generating images, editing images, and creating videos using 
 - **Add Audio to Video**: Add AI-generated audio to videos using MMAudio
 - **Automatic Service Switching**: Automatically switches between `normal` and `no-cache` services
 - **Smart LoRA Control**: Automatically enable/disable LoRAs based on prompt keywords
+- **Model Presets**: Switch between `default` and `smooth` video models via `--model`
 
 ## Quick Start
 
 ```bash
-# Always use --enable-service-manager (required)
-python comfyui_runner.py t2i "a beautiful sunset" --enable-service-manager
+# Service manager is enabled by default
+python comfyui_runner.py t2i "a beautiful sunset"
+
+# Disable if needed:
+python comfyui_runner.py t2i "a beautiful sunset" --disable-service-manager
 ```
 
 ## Configuration
 
 ### Required: Service Manager
 
-This skill **requires** comfyui-service-manager to be running. The service manager must be on the **same host** as ComfyUI.
+This skill uses comfyui-service-manager by default. The service manager must be on the **same host** as ComfyUI. Use `--disable-service-manager` to disable.
 
 ```python
 from comfyui_runner import ComfyUIConfig, ComfyUIRunner
@@ -104,7 +107,6 @@ print(f"Generated {len(images)} images")
 python comfyui_runner.py t2i "a beautiful sunset over mountains" \
   --negative "low quality, blurry" \
   --width 928 --height 1664 \
-  --enable-service-manager \
   --service-manager 192.168.1.179:9999
 ```
 
@@ -123,8 +125,7 @@ edited = runner.edit_image(
 
 **CLI:**
 ```bash
-python comfyui_runner.py edit input.jpg "make the sky blue" \
-  --enable-service-manager
+python comfyui_runner.py edit input.jpg "make the sky blue"
 ```
 
 ### Image-to-Video Generation
@@ -144,8 +145,7 @@ videos = runner.generate_video(
 
 **CLI:**
 ```bash
-python comfyui_runner.py i2v input.jpg "camera pans across the landscape" \
-  --enable-service-manager
+python comfyui_runner.py i2v input.jpg "camera pans across the landscape"
 ```
 
 **Smart LoRA Control** (Automatic):
@@ -179,7 +179,7 @@ videos = runner.generate_video(
 
 ## Automatic Service Switching
 
-The skill automatically selects the optimal service when `--enable-service-manager` is used:
+The skill automatically selects the optimal service by default:
 
 | Operation | Target Service | Reason |
 |-----------|---------------|--------|
@@ -188,13 +188,29 @@ The skill automatically selects the optimal service when `--enable-service-manag
 | Image-to-Video | `no-cache` | Saves memory, prevents OOM |
 | Add Audio to Video | `normal` | Uses cache for faster generation |
 
-**Always use `--enable-service-manager`** for optimal performance and memory usage.
+**Service manager is enabled by default** for optimal performance and memory usage.
+
+### Video Model Presets (--model)
+
+| Preset | Model Files | Best For |
+|--------|------------|---------|
+| `default` | Wan2.2-I2V-A14B (High/Low Noise) | General purpose, realistic style |
+| `smooth` | smoothMixWan22I2VV20 (High/Low) | **Fantasy race content** (elves, orcs, demons, dragon-kin and other non-human characters) |
+
+**Tip**: Use `--model smooth` when generating videos involving fantasy races (elf, orc, demon, dragon-kin, etc.) for better results.
+
+```bash
+# Fantasy race content -> use smooth model
+python comfyui_runner.py i2v input.jpg "an elf princess walking" --model smooth
+
+# General content -> use default model
+python comfyui_runner.py i2v input.jpg "a woman walking" --model default
+```
 
 Manual service override:
 ```bash
 python comfyui_runner.py i2v input.jpg "camera pans" \
-  --service highvram \
-  --enable-service-manager
+  --disable-service-manager
 ```
 
 ## Parameters
@@ -238,6 +254,7 @@ python comfyui_runner.py i2v input.jpg "camera pans" \
 | `seed` | int | Random | Random seed |
 | `lora_keywords` | bool | True | Enable automatic LoRA keyword detection |
 | `lora_mapping` | dict | {} | Custom keyword mapping (overrides default) |
+| `model` | str | "default" | Model preset: `"default"` or `"smooth"` |
 
 ### Add Audio to Video Parameters
 
@@ -271,8 +288,8 @@ Arguments:
   prompt      For edit/i2v: prompt text
               For audio: audio description (optional)
 
-Required Options:
-  --enable-service-manager  Enable auto service switching (required)
+Flags:
+  --disable-service-manager  Disable service manager (enabled by default)
 
 Optional Options:
   --server ADDRESS       ComfyUI server address (default: 192.168.1.179:8188)
@@ -351,7 +368,7 @@ The skill handles common errors automatically:
 
 ## Tips
 
-1. **Always use `--enable-service-manager`**: Required for automatic service switching
+1. **Service manager is enabled by default**: No flag needed, Use `--disable-service-manager` to disable
 2. **For high quality images**: Use higher resolution (1024x1024 or above)
 3. **For video**: Start with good quality input images
 4. **Negative prompts**: Use descriptive negative prompts for better results
@@ -373,8 +390,7 @@ outputs = runner.add_audio(
 
 **CLI:**
 ```bash
-python comfyui_runner.py audio input.mp4 "ambient music with gentle piano" \
-  --enable-service-manager
+python comfyui_runner.py audio input.mp4 "ambient music with gentle piano"
 ```
 
 ## Troubleshooting
@@ -388,7 +404,7 @@ python comfyui_runner.py audio input.mp4 "ambient music with gentle piano" \
 - Verify workflow JSON is valid
 
 ### Video generation OOM
-- Ensure `--enable-service-manager` is used (auto-switches to no-cache)
+- Service manager auto-switches to `no-cache` by default to save memory
 - Or use smaller resolution (480x832)
 
 ## Workflow Files
