@@ -1232,10 +1232,10 @@ Examples:
 
     # Configure
     config = ComfyUIConfig(server_address=args.server)
-    if not args.disable_service_manager:
+    if args.disable_service_manager:
         config.service_manager_enabled = False
-        if args.service_manager:
-            config.service_manager_address = args.service_manager
+    if args.service_manager:
+        config.service_manager_address = args.service_manager
     runner = ComfyUIRunner(config)
 
     try:
