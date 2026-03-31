@@ -28,7 +28,7 @@ CLI-based tool for generating images, editing images, and creating videos using 
 
 - **Command-Line First**: Designed for CLI usage via `comfyui_runner.py`
 - **Text-to-Image**: Generate images from text prompts
-- **Image Editing**: Edit images with text instructions
+- **Image Editing**: Edit images with text instructions (supports 1-3 reference images)
 - **Image-to-Video**: Create videos from images
 - **Add Audio to Video**: Add AI-generated audio to videos using MMAudio
 - **Automatic Service Switching**: Automatically switches between `normal` and `no-cache` services
@@ -112,7 +112,9 @@ python comfyui_runner.py t2i "a beautiful sunset over mountains" \
 
 ### Image Editing
 
-Edit existing images with text instructions.
+Edit existing images with text instructions. Supports **1-3 input images** for multi-reference editing.
+
+**Single image editing:**
 
 ```python
 edited = runner.edit_image(
@@ -123,9 +125,32 @@ edited = runner.edit_image(
 )
 ```
 
+**Multi-image editing (2-3 images):**
+
+```python
+edited = runner.edit_image(
+    image_paths=["photo1.jpg", "photo2.jpg"],
+    edit_prompt="merge the style of both photos",
+    negative_prompt="low quality",
+    output_dir="./outputs"
+)
+
+# 3 images
+edited = runner.edit_image(
+    image_paths=["img1.jpg", "img2.jpg", "img3.jpg"],
+    edit_prompt="combine elements from all three images",
+    output_dir="./outputs"
+)
+```
+
 **CLI:**
 ```bash
+# Single image
 python comfyui_runner.py edit input.jpg "make the sky blue"
+
+# Multiple images (comma-separated)
+python comfyui_runner.py edit "photo1.jpg,photo2.jpg" "merge the style of both"
+python comfyui_runner.py edit "img1.jpg,img2.jpg,img3.jpg" "combine all three"
 ```
 
 ### Image-to-Video Generation
@@ -231,7 +256,8 @@ python comfyui_runner.py i2v input.jpg "camera pans" \
 
 | Parameter | Type | Default | Description |
 |-----------|------|---------|-------------|
-| `image_path` | str | **Required** | Input image path |
+| `image_path` | str | "" | Single input image path |
+| `image_paths` | list[str] | [] | Multiple image paths (1-3 images, takes priority over `image_path`) |
 | `edit_prompt` | str | **Required** | Edit instruction |
 | `negative_prompt` | str | "" | Negative prompt |
 | `steps` | int | 4 | Sampling steps |
@@ -283,7 +309,8 @@ Commands:
 
 Arguments:
   input       For t2i: prompt text
-              For edit/i2v: input image path
+              For edit: image path (comma-separated for multiple images, up to 3)
+              For i2v: input image path
               For audio: input video path
   prompt      For edit/i2v: prompt text
               For audio: audio description (optional)
@@ -326,11 +353,18 @@ images = runner.generate_image(
 ### Example 2: Edit Photo
 
 ```python
-# Change sky color
+# Single image - change sky color
 edited = runner.edit_image(
     image_path="landscape.jpg",
     edit_prompt="replace the sky with a vibrant orange sunset",
     negative_prompt="low quality resolution"
+)
+
+# Multi-image - merge two portraits
+edited = runner.edit_image(
+    image_paths=["person1.jpg", "person2.jpg"],
+    edit_prompt="blend the facial features of both portraits",
+    output_dir="./outputs"
 )
 ```
 

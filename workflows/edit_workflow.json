@@ -18,7 +18,25 @@
     },
     "class_type": "LoadImage",
     "_meta": {
-      "title": "Load Image"
+      "title": "Load Image 1"
+    }
+  },
+  "42": {
+    "inputs": {
+      "image": "gen_752cb0bf_00002_.png"
+    },
+    "class_type": "LoadImage",
+    "_meta": {
+      "title": "Load Image 2"
+    }
+  },
+  "43": {
+    "inputs": {
+      "image": "gen_752cb0bf_00003_.png"
+    },
+    "class_type": "LoadImage",
+    "_meta": {
+      "title": "Load Image 3"
     }
   },
   "172": {
@@ -57,6 +75,14 @@
       "image1": [
         "190",
         0
+      ],
+      "image2": [
+        "194",
+        0
+      ],
+      "image3": [
+        "195",
+        0
       ]
     },
     "class_type": "TextEncodeQwenImageEditPlus",
@@ -77,6 +103,14 @@
       ],
       "image1": [
         "190",
+        0
+      ],
+      "image2": [
+        "194",
+        0
+      ],
+      "image3": [
+        "195",
         0
       ]
     },
@@ -160,7 +194,31 @@
     },
     "class_type": "FluxKontextImageScale",
     "_meta": {
-      "title": "FluxKontextImageScale"
+      "title": "FluxKontextImageScale (Image 1)"
+    }
+  },
+  "194": {
+    "inputs": {
+      "image": [
+        "42",
+        0
+      ]
+    },
+    "class_type": "FluxKontextImageScale",
+    "_meta": {
+      "title": "FluxKontextImageScale (Image 2)"
+    }
+  },
+  "195": {
+    "inputs": {
+      "image": [
+        "43",
+        0
+      ]
+    },
+    "class_type": "FluxKontextImageScale",
+    "_meta": {
+      "title": "FluxKontextImageScale (Image 3)"
     }
   },
   "191": {

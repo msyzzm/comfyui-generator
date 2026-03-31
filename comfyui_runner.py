@@ -116,8 +116,9 @@ class TextToImageParams(WorkflowParams):
 
 @dataclass
 class ImageEditParams(WorkflowParams):
-    """Parameters for image editing workflow"""
-    image_path: str = ""
+    """Parameters for image editing workflow (supports 1-3 input images)"""
+    image_path: str = ""  # Primary image (backward compatible)
+    image_paths: List[str] = field(default_factory=list)  # Alternative: pass multiple images as list
     edit_prompt: str = ""
     negative_prompt: str = ""
     steps: int = 4
@@ -125,6 +126,14 @@ class ImageEditParams(WorkflowParams):
     sampler_name: str = "sa_solver"
     scheduler: str = "beta"
     denoise: float = 1.0
+
+    def get_all_image_paths(self) -> List[str]:
+        """Get all image paths as a list (1-3 images)"""
+        if self.image_paths:
+            return self.image_paths[:3]
+        if self.image_path:
+            return [self.image_path]
+        return []
 
 
 @dataclass
@@ -570,21 +579,58 @@ class TextToImageWorkflow(Workflow):
 
 
 class ImageEditWorkflow(Workflow):
-    """Image editing workflow"""
+    """Image editing workflow (supports 1-3 input images)"""
 
     # Node IDs in the workflow
-    NODE_LOAD_IMAGE = "41"
+    NODE_LOAD_IMAGE_1 = "41"
+    NODE_LOAD_IMAGE_2 = "42"
+    NODE_LOAD_IMAGE_3 = "43"
     NODE_POSITIVE_EDIT = "176"
     NODE_NEGATIVE_EDIT = "174"
     NODE_KSAMPLER = "193"
     NODE_SAVE_IMAGE = "9"
 
+    # LoadImage node IDs mapped by index (1-based)
+    LOAD_IMAGE_NODES = ["41", "42", "43"]
+
     def set_parameters(self, params: ImageEditParams):
-        """Set image editing parameters"""
-        # Upload and set input image
-        image_ref = self._upload_image(params.image_path, subfolder="")
-        if self.NODE_LOAD_IMAGE in self.prompt_data:
-            self.prompt_data[self.NODE_LOAD_IMAGE]["inputs"]["image"] = image_ref
+        """Set image editing parameters (supports 1-3 images)"""
+        all_paths = params.get_all_image_paths()
+        if not all_paths:
+            raise ValueError("At least one image path is required for image editing")
+
+        print(f"[Image Edit] Uploading {len(all_paths)} image(s)...")
+
+        # Upload and set each image
+        for i, img_path in enumerate(all_paths):
+            node_id = self.LOAD_IMAGE_NODES[i]
+            image_ref = self._upload_image(img_path, subfolder="")
+            if node_id in self.prompt_data:
+                self.prompt_data[node_id]["inputs"]["image"] = image_ref
+                print(f"[Image Edit] Image {i+1}: {os.path.basename(img_path)} → node {node_id}")
+
+        # For images not provided, clear the image2/image3 inputs on encode nodes
+        # to avoid errors from missing images
+        for i in range(len(all_paths), 3):
+            node_id = self.LOAD_IMAGE_NODES[i]
+            if node_id in self.prompt_data:
+                # Remove unused image nodes' connections by keeping image1 only
+                # We need to remove image2/image3 from encode nodes if fewer images
+                pass
+
+        # If only 1 image, remove image2/image3 inputs from encode nodes to avoid issues
+        if len(all_paths) < 2:
+            for encode_node in [self.NODE_POSITIVE_EDIT, self.NODE_NEGATIVE_EDIT]:
+                if encode_node in self.prompt_data:
+                    inputs = self.prompt_data[encode_node]["inputs"]
+                    inputs.pop("image2", None)
+                    inputs.pop("image3", None)
+
+        elif len(all_paths) < 3:
+            for encode_node in [self.NODE_POSITIVE_EDIT, self.NODE_NEGATIVE_EDIT]:
+                if encode_node in self.prompt_data:
+                    inputs = self.prompt_data[encode_node]["inputs"]
+                    inputs.pop("image3", None)
 
         # Set edit prompt
         if self.NODE_POSITIVE_EDIT in self.prompt_data:
@@ -1103,16 +1149,31 @@ class ComfyUIRunner:
 
     def edit_image(
         self,
-        image_path: str,
-        edit_prompt: str,
+        image_path: str = "",
+        edit_prompt: str = "",
         negative_prompt: str = "",
         output_dir: str = "./outputs",
         seed: Optional[int] = None,
+        image_paths: Optional[List[str]] = None,
         **kwargs
     ) -> List[str]:
-        """Edit an image with text instructions"""
+        """Edit image(s) with text instructions (supports 1-3 images)
+
+        Args:
+            image_path: Primary image path (single image mode)
+            edit_prompt: Edit instruction prompt
+            negative_prompt: Negative prompt
+            output_dir: Output directory
+            seed: Random seed
+            image_paths: List of image paths (1-3 images, takes priority over image_path)
+            **kwargs: Additional parameters
+
+        Returns:
+            List of output file paths
+        """
         params = ImageEditParams(
             image_path=image_path,
+            image_paths=image_paths or [],
             edit_prompt=edit_prompt,
             negative_prompt=negative_prompt,
             seed=seed,
@@ -1213,7 +1274,7 @@ Examples:
         choices=["t2i", "edit", "i2v", "audio"],
         help="Command: t2i (text-to-image), edit (image edit), i2v (image-to-video), audio (add audio to video)"
     )
-    parser.add_argument("input", help="Input: prompt for t2i/i2v, or image path for edit/i2v")
+    parser.add_argument("input", help="Input: prompt for t2i/i2v, or image path for edit/i2v (for edit: comma-separated for multiple images)")
     parser.add_argument("prompt", nargs="?", help="Prompt/edit instruction")
     parser.add_argument("--negative", default="", help="Negative prompt")
     parser.add_argument("--output", default="./outputs", help="Output directory")
@@ -1258,16 +1319,28 @@ Examples:
             print(f"Generated {len(outputs)} image(s)")
 
         elif args.command == "edit":
-            print(f"Editing image: {args.input}")
             if not args.prompt:
                 parser.error("edit command requires a prompt argument")
-            outputs = runner.edit_image(
-                image_path=args.input,
-                edit_prompt=args.prompt,
-                negative_prompt=args.negative,
-                output_dir=args.output,
-                seed=args.seed
-            )
+            # Support comma-separated image paths for multi-image editing
+            image_paths = [p.strip() for p in args.input.split(",")]
+            if len(image_paths) == 1:
+                print(f"Editing image: {image_paths[0]}")
+                outputs = runner.edit_image(
+                    image_path=image_paths[0],
+                    edit_prompt=args.prompt,
+                    negative_prompt=args.negative,
+                    output_dir=args.output,
+                    seed=args.seed
+                )
+            else:
+                print(f"Editing with {len(image_paths)} images: {image_paths}")
+                outputs = runner.edit_image(
+                    image_paths=image_paths,
+                    edit_prompt=args.prompt,
+                    negative_prompt=args.negative,
+                    output_dir=args.output,
+                    seed=args.seed
+                )
             print(f"Generated {len(outputs)} image(s)")
 
         elif args.command == "i2v":
